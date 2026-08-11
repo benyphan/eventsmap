@@ -1,0 +1,8 @@
+node_modules/
+.expo/
+android/
+ios/
+metro.log
+tmp_resp.json
+tmp_test_event.json
+*.log

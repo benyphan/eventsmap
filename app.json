@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "EventsMap",
+    "slug": "events-map-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ff4458"
+    },
+    "android": {
+      "package": "ru.eventsmap.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ff4458"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "ru.eventsmap.app",
+      "icon": "./assets/icon.png"
+    }
+  }
+}
