@@ -21,6 +21,12 @@
     "ios": {
       "bundleIdentifier": "ru.eventsmap.app",
       "icon": "./assets/icon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "c50c37fb-3968-4dd4-b313-5c506c6ea467"
+      }
+    },
+    "owner": "ssss44"
   }
 }

@@ -20,6 +20,7 @@ export default function RegisterScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [gender, setGender] = useState(null);
+  const [referralCode, setReferralCode] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
@@ -29,7 +30,13 @@ export default function RegisterScreen({ navigation }) {
     }
     setLoading(true);
     try {
-      const data = await register({ name, email, password, gender: gender || null });
+      const data = await register({
+        name,
+        email,
+        password,
+        gender: gender || null,
+        referral_code: referralCode.trim() || undefined,
+      });
       navigation.navigate("VerifyCode", { email, devCode: data.dev_code || null });
     } catch (e) {
       Alert.alert("Ошибка регистрации", e?.response?.data?.detail || "Что-то пошло не так");
@@ -56,6 +63,13 @@ export default function RegisterScreen({ navigation }) {
         secureTextEntry
         value={password}
         onChangeText={setPassword}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Код приглашения (если есть)"
+        autoCapitalize="characters"
+        value={referralCode}
+        onChangeText={setReferralCode}
       />
       <Text style={styles.label}>Пол</Text>
       <View style={styles.genderRow}>

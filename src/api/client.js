@@ -207,4 +207,9 @@ export async function markNotificationRead(id) {
   return res.data;
 }
 
+export async function getMyReferral() {
+  const res = await api.get("/referrals/me");
+  return res.data;
+}
+
 export default api;

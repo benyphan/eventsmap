@@ -11,6 +11,7 @@ import {
   TextInput,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { Share } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -22,6 +23,7 @@ import {
   createPostWithImage,
   deletePost,
   getFriendRequests,
+  getMyReferral,
   BASE_URL,
 } from "../api/client";
 import { fmtDateTime } from "../utils/datetime";
@@ -46,6 +48,8 @@ export default function ProfileScreen({ onLoggedOut }) {
   const [viewerImages, setViewerImages] = useState([]);
   const [viewerIndex, setViewerIndex] = useState(0);
   const [viewerVisible, setViewerVisible] = useState(false);
+  const [referral, setReferral] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   const openViewer = (images, index) => {
     setViewerImages(images);
@@ -69,6 +73,10 @@ export default function ProfileScreen({ onLoggedOut }) {
     try {
       const fr = await getFriends();
       setFriendsCount(fr.length);
+    } catch (e) {}
+    try {
+      const ref = await getMyReferral();
+      setReferral(ref);
     } catch (e) {}
     setLoading(false);
   }, []);
@@ -113,6 +121,24 @@ export default function ProfileScreen({ onLoggedOut }) {
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleShareReferral = async () => {
+    if (!referral?.code) return;
+    try {
+      await Share.share({
+        message: `Присоединяйся ко мне в EventsMap! Введи код ${referral.code} при регистрации и получи бонусные баллы.`,
+      });
+    } catch (e) {}
+  };
+
+  const handleCopyReferral = async () => {
+    if (!referral?.code) return;
+    setCopied(true);
+    try {
+      await Share.share({ message: referral.code });
+    } catch (e) {}
+    setTimeout(() => setCopied(false), 1500);
   };
 
   const handleLogout = async () => {
@@ -255,6 +281,28 @@ export default function ProfileScreen({ onLoggedOut }) {
               <Text style={styles.friendBtnText}>Чаты</Text>
             </TouchableOpacity>
           </View>
+
+          {referral?.code ? (
+            <View style={styles.referralBox}>
+              <View style={styles.referralTop}>
+                <Text style={styles.referralTitle}>Пригласи друга</Text>
+                <Text style={styles.referralCount}>
+                  {referral.referral_count} приглашено · {referral.credits} баллов
+                </Text>
+              </View>
+              <Text style={styles.referralHint}>
+                Друг введёт твой код при регистрации — оба получите баллы
+              </Text>
+              <View style={styles.referralCodeRow}>
+                <Text style={styles.referralCode}>{referral.code}</Text>
+                <TouchableOpacity style={styles.referralShareBtn} onPress={handleShareReferral}>
+                  <Text style={styles.referralShareText}>
+                    {copied ? "Готово!" : "Поделиться"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : null}
 
           <View style={styles.postComposer}>
             <TextInput
@@ -450,6 +498,43 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
+  referralBox: {
+    alignSelf: "stretch",
+    marginTop: 16,
+    marginHorizontal: 16,
+    backgroundColor: "#fff5f6",
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#FF4458",
+  },
+  referralTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  referralTitle: { fontSize: 15, fontWeight: "700", color: "#FF4458" },
+  referralCount: { fontSize: 12, color: "#888" },
+  referralHint: { marginTop: 6, fontSize: 12, color: "#666" },
+  referralCodeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 10,
+  },
+  referralCode: {
+    fontSize: 20,
+    fontWeight: "800",
+    letterSpacing: 3,
+    color: "#111",
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  referralShareBtn: {
+    backgroundColor: "#FF4458",
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+  },
+  referralShareText: { color: "#fff", fontWeight: "700", fontSize: 14 },
   postComposer: {
     alignSelf: "stretch",
     marginTop: 20,
