@@ -282,13 +282,6 @@ export default function ProfileScreen({ onLoggedOut }) {
               <Ionicons name="chatbubbles" size={16} color="#FF4458" />
               <Text style={styles.friendBtnText}>Чаты</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.shopBtn}
-              onPress={() => navigation.navigate("Shop")}
-            >
-              <Ionicons name="gift" size={16} color="#fff" />
-              <Text style={styles.shopBtnText}>Магазин</Text>
-            </TouchableOpacity>
           </View>
 
           {referral?.code ? (
@@ -507,16 +500,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
-  shopBtn: {
-    backgroundColor: "#FF4458",
-    borderRadius: 20,
-    paddingVertical: 9,
-    paddingHorizontal: 18,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  shopBtnText: { color: "#fff", fontWeight: "600", fontSize: 13 },
   referralBox: {
     alignSelf: "stretch",
     marginTop: 16,
