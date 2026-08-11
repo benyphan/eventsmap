@@ -1,11 +1,9 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { View, Text, StyleSheet, Switch, TouchableOpacity, Alert } from "react-native";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { getMe, updateMe } from "../api/client";
 
 export default function SettingsScreen() {
-  const navigation = useNavigation();
   const [notifications, setNotifications] = React.useState(true);
   const [showOnMap, setShowOnMap] = React.useState(true);
   const [policy, setPolicy] = useState("all");
@@ -40,12 +38,6 @@ export default function SettingsScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Настройки</Text>
-
-      <TouchableOpacity style={styles.navRow} onPress={() => navigation.navigate("Shop")}>
-        <Ionicons name="gift" size={20} color="#FF4458" />
-        <Text style={styles.navLabel}>Магазин украшений и подарков</Text>
-        <Ionicons name="chevron-forward" size={18} color="#ccc" />
-      </TouchableOpacity>
 
       <Text style={styles.sectionTitle}>Кто может мне писать</Text>
       <Text style={styles.sectionHint}>
@@ -88,17 +80,6 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 24, backgroundColor: "#fff" },
   header: { fontSize: 24, fontWeight: "700", marginBottom: 24 },
-  navRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 14,
-    paddingHorizontal: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-    marginBottom: 24,
-  },
-  navLabel: { fontSize: 15, flex: 1, color: "#333", fontWeight: "500" },
   sectionTitle: { fontSize: 15, fontWeight: "700", color: "#333", marginBottom: 4 },
   sectionHint: { fontSize: 12, color: "#999", marginBottom: 12 },
   segment: {
