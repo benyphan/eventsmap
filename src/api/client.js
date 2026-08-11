@@ -2,7 +2,8 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../config";
 
-export { API_URL as BASE_URL };
+const BASE_URL = API_URL;
+export { BASE_URL };
 
 const api = axios.create({
   baseURL: BASE_URL,
