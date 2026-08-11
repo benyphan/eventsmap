@@ -24,6 +24,7 @@ import FriendRequestsScreen from "./src/screens/FriendRequestsScreen";
 import SearchScreen from "./src/screens/SearchScreen";
 import ChatsScreen from "./src/screens/ChatsScreen";
 import ChatScreen from "./src/screens/ChatScreen";
+import ShopScreen from "./src/screens/ShopScreen";
 
 const AuthStack = createNativeStackNavigator();
 const MainTabs = createBottomTabNavigator();
@@ -80,6 +81,11 @@ function MainApp({ onLoggedOut }) {
         options={{ title: "Запросы в друзья" }}
       />
       <RootStack.Screen name="Chat" component={ChatScreen} options={{ title: "Чат" }} />
+      <RootStack.Screen
+        name="Shop"
+        component={ShopScreen}
+        options={{ title: "Магазин" }}
+      />
     </RootStack.Navigator>
   );
 }

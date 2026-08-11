@@ -212,4 +212,27 @@ export async function getMyReferral() {
   return res.data;
 }
 
+export async function getShop() {
+  const res = await api.get("/shop");
+  return res.data;
+}
+
+export async function buyShopItem(itemId) {
+  const res = await api.post(`/shop/buy/${itemId}`);
+  return res.data;
+}
+
+export async function giftShopItem(itemId, toUserId, message) {
+  const res = await api.post(`/shop/gift/${itemId}`, {
+    to_user_id: toUserId,
+    message: message || null,
+  });
+  return res.data;
+}
+
+export async function equipShopItem(itemId) {
+  const res = await api.post(`/shop/equip/${itemId}`);
+  return res.data;
+}
+
 export default api;

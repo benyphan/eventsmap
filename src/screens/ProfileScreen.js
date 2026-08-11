@@ -248,7 +248,9 @@ export default function ProfileScreen({ onLoggedOut }) {
               <Text style={styles.cameraText}>📷</Text>
             </View>
           </TouchableOpacity>
-          <Text style={styles.name}>{user?.name}</Text>
+          <Text style={styles.name}>
+            {user?.active_decoration ? "✨ " : ""}{user?.name}
+          </Text>
           <Text style={styles.email}>{user?.email}</Text>
           {user?.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
 
@@ -279,6 +281,13 @@ export default function ProfileScreen({ onLoggedOut }) {
             <TouchableOpacity style={styles.chatsBtn} onPress={() => navigation.navigate("Чаты")}>
               <Ionicons name="chatbubbles" size={16} color="#FF4458" />
               <Text style={styles.friendBtnText}>Чаты</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.shopBtn}
+              onPress={() => navigation.navigate("Shop")}
+            >
+              <Ionicons name="gift" size={16} color="#fff" />
+              <Text style={styles.shopBtnText}>Магазин</Text>
             </TouchableOpacity>
           </View>
 
@@ -498,6 +507,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
+  shopBtn: {
+    backgroundColor: "#FF4458",
+    borderRadius: 20,
+    paddingVertical: 9,
+    paddingHorizontal: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  shopBtnText: { color: "#fff", fontWeight: "600", fontSize: 13 },
   referralBox: {
     alignSelf: "stretch",
     marginTop: 16,

@@ -113,7 +113,9 @@ export default function UserProfileScreen({ route }) {
               </View>
             )}
           </View>
-          <Text style={styles.name}>{user?.name}</Text>
+          <Text style={styles.name}>
+            {user?.active_decoration ? "✨ " : ""}{user?.name}
+          </Text>
           <Text style={styles.email}>{user?.email}</Text>
           {user?.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
 
@@ -133,6 +135,14 @@ export default function UserProfileScreen({ route }) {
             >
               <Ionicons name="chatbubble" size={18} color="#FF4458" />
               <Text style={styles.btnText}>Написать</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.btn, busy && styles.disabled]}
+              onPress={() => navigation.navigate("Shop", { giftTo: user })}
+              disabled={busy}
+            >
+              <Ionicons name="gift" size={18} color="#FF4458" />
+              <Text style={styles.btnText}>Подарить</Text>
             </TouchableOpacity>
           </View>
 
