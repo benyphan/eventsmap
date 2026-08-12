@@ -9,10 +9,10 @@ import {
   Alert,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
 import { getEventsNearby } from "../api/client";
 import { fmtDateTime } from "../utils/datetime";
+import { loadLastLocation, saveLastLocation, getCurrentPosition } from "../utils/location";
 
 export default function FeedScreen({ navigation }) {
   const [events, setEvents] = useState([]);
@@ -21,32 +21,27 @@ export default function FeedScreen({ navigation }) {
   const loadEvents = useCallback(async () => {
     setRefreshing(true);
     try {
-      let lat = 55.751244;
-      let lng = 37.618423;
+      // Сразу показываем события у последней известной позиции,
+      // затем обновляем по свежему GPS. Без «молчаливого» фолбэка на Москву.
+      const saved = await loadLastLocation();
+      let lat = saved ? saved.lat : 55.751244;
+      let lng = saved ? saved.lng : 37.618423;
       try {
-        const { status } = await Promise.race([
-          Location.requestForegroundPermissionsAsync(),
-          new Promise((_, rej) =>
-            setTimeout(() => rej(new Error("Таймаут разрешения")), 3000)
-          ),
-        ]);
-        if (status === "granted") {
-          const loc = await Promise.race([
-            Location.getCurrentPositionAsync({}),
-            new Promise((_, rej) =>
-              setTimeout(() => rej(new Error("Таймаут геолокации")), 4000)
-            ),
-          ]);
-          lat = loc.coords.latitude;
-          lng = loc.coords.longitude;
-        }
+        const data = await getEventsNearby(lat, lng, 100000);
+        setEvents(data);
       } catch (e) {
-        console.log("Не удалось получить геолокацию, используем Москву", e.message);
+        console.log("Ошибка загрузки событий", e.message);
       }
-      const data = await getEventsNearby(lat, lng, 100000);
-      setEvents(data);
-    } catch (e) {
-      console.log("Ошибка загрузки событий", e.message);
+      const pos = await getCurrentPosition();
+      if (pos) {
+        saveLastLocation(pos);
+        try {
+          const data = await getEventsNearby(pos.lat, pos.lng, 100000);
+          setEvents(data);
+        } catch (e) {
+          console.log("Ошибка загрузки событий", e.message);
+        }
+      }
     } finally {
       setRefreshing(false);
     }

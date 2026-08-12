@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from "react";
-import { View, StyleSheet, TouchableOpacity, Text } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { View, StyleSheet, TouchableOpacity, Text, ActivityIndicator } from "react-native";
 import { WebView } from "react-native-webview";
 import { API_URL } from "../config";
+import { loadLastLocation } from "../utils/location";
 
 const YANDEX_URL =
   API_URL + "/api/tiles?l=map&x={x}&y={y}&z={z}&scale=1&lang=ru_RU";
@@ -47,11 +48,25 @@ function buildPickerHtml(lat, lng) {
 
 export default function LocationPickerScreen({ navigation, route }) {
   const params = route.params || {};
-  const lat = params.lat ?? 55.751244;
-  const lng = params.lng ?? 37.618423;
+  const [center, setCenter] = useState(null);
   const [picked, setPicked] = useState(null);
 
-  const html = useMemo(() => buildPickerHtml(lat, lng), [lat, lng]);
+  // Старт карты — переданная точка, иначе последняя известная позиция,
+  // иначе Москва (только самый первый запуск).
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const saved = await loadLastLocation();
+      const lat = params.lat ?? saved?.lat ?? 55.751244;
+      const lng = params.lng ?? saved?.lng ?? 37.618423;
+      if (mounted) setCenter({ lat, lng });
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [params.lat, params.lng]);
+
+  const html = useMemo(() => (center ? buildPickerHtml(center.lat, center.lng) : null), [center]);
 
   const onMessage = (e) => {
     try {
@@ -71,14 +86,20 @@ export default function LocationPickerScreen({ navigation, route }) {
   return (
     <View style={{ flex: 1 }}>
       <Text style={styles.hint}>Нажми на карту или перетащи метку</Text>
-      <WebView
-        originWhitelist={["*"]}
-        source={{ html }}
-        onMessage={onMessage}
-        style={{ flex: 1 }}
-        javaScriptEnabled
-        domStorageEnabled
-      />
+      {html ? (
+        <WebView
+          originWhitelist={["*"]}
+          source={{ html }}
+          onMessage={onMessage}
+          style={{ flex: 1 }}
+          javaScriptEnabled
+          domStorageEnabled
+        />
+      ) : (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color="#FF4458" />
+        </View>
+      )}
       <TouchableOpacity
         style={[styles.confirm, !picked && styles.confirmDisabled]}
         onPress={confirm}
@@ -93,6 +114,7 @@ export default function LocationPickerScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
   hint: {
     backgroundColor: "#fff",
     paddingVertical: 10,

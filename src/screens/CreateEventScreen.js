@@ -10,9 +10,9 @@ import {
   Alert,
 } from "react-native";
 import { useRoute } from "@react-navigation/native";
-import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
 import { createEvent } from "../api/client";
+import { loadLastLocation, saveLastLocation, getCurrentPosition } from "../utils/location";
 
 const MOSCOW = { lat: 55.751244, lng: 37.618423 };
 
@@ -72,17 +72,20 @@ export default function CreateEventScreen({ navigation }) {
 
   useEffect(() => {
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        setLocation(MOSCOW);
+      // Сначала последняя известная позиция, затем свежий GPS.
+      // Москва — только если о пользователе вообще ничего не известно.
+      const saved = await loadLastLocation();
+      if (saved) {
+        setLocation(saved);
         return;
       }
-      try {
-        const loc = await Location.getCurrentPositionAsync({});
-        setLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
-      } catch (e) {
-        setLocation(MOSCOW);
+      const pos = await getCurrentPosition();
+      if (pos) {
+        setLocation(pos);
+        saveLastLocation(pos);
+        return;
       }
+      setLocation(MOSCOW);
     })();
   }, []);
 

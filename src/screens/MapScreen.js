@@ -1,13 +1,11 @@
-import React, { useCallback, useRef, useState } from "react";
-import { View, StyleSheet, TouchableOpacity, Text } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { View, StyleSheet, TouchableOpacity, Text, ActivityIndicator } from "react-native";
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
-import * as Location from "expo-location";
 import { getEventsNearby } from "../api/client";
 import { API_URL } from "../config";
-
-const MOSCOW = { lat: 55.751244, lng: 37.618423 };
+import { MOSCOW, loadLastLocation, saveLastLocation, getCurrentPosition } from "../utils/location";
 
 // Провайдер тайлов: Яндекс (публичные тайлы без ключа).
 // Эмулятор не имеет прямого доступа к tile-серверам Яндекса,
@@ -124,35 +122,32 @@ function buildMapHtml(lat, lng) {
 
 export default function MapScreen({ navigation }) {
   const webviewRef = useRef(null);
-  const [html] = useState(() => buildMapHtml(MOSCOW.lat, MOSCOW.lng));
+  const [html, setHtml] = useState(null);
   const [locating, setLocating] = useState(false);
   const suppressMove = useRef(false);
   const moveTimer = useRef(null);
+  const lastKnown = useRef(null);
 
   const send = (data) => {
     webviewRef.current?.postMessage(JSON.stringify(data));
   };
 
-  const getPosition = async () => {
-    try {
-      const { status } = await Promise.race([
-        Location.requestForegroundPermissionsAsync(),
-        new Promise((_, rej) =>
-          setTimeout(() => rej(new Error("Таймаут разрешения")), 3000)
-        ),
-      ]);
-      if (status !== "granted") return null;
-      const loc = await Promise.race([
-        Location.getCurrentPositionAsync({}),
-        new Promise((_, rej) =>
-          setTimeout(() => rej(new Error("Таймаут геолокации")), 4000)
-        ),
-      ]);
-      return { lat: loc.coords.latitude, lng: loc.coords.longitude };
-    } catch (e) {
-      return null;
-    }
-  };
+  // Стартовый центр карты — последняя известная позиция пользователя,
+  // а не Москва. Москва остаётся только на самый первый запуск.
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const saved = await loadLastLocation();
+      if (!mounted) return;
+      if (saved) lastKnown.current = saved;
+      setHtml(
+        buildMapHtml(saved ? saved.lat : MOSCOW.lat, saved ? saved.lng : MOSCOW.lng)
+      );
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const loadEvents = async (lat, lng) => {
     try {
@@ -163,16 +158,28 @@ export default function MapScreen({ navigation }) {
     }
   };
 
-  const locateMe = async (showLoader = true) => {
-    if (showLoader) setLocating(true);
-    const pos = await getPosition();
-    const target = pos || MOSCOW;
+  const centerMap = (lat, lng) => {
     suppressMove.current = true;
-    send({ type: "center", lat: target.lat, lng: target.lng });
-    await loadEvents(target.lat, target.lng);
+    send({ type: "center", lat, lng });
     setTimeout(() => {
       suppressMove.current = false;
     }, 1200);
+  };
+
+  const locateMe = async (showLoader = true) => {
+    if (showLoader) setLocating(true);
+    const pos = await getCurrentPosition();
+    // Никакого фолбэка на Москву: при сбое GPS возвращаемся на
+    // последнюю известную позицию, иначе оставляем карту как есть.
+    const target = pos || lastKnown.current;
+    if (target) {
+      if (pos) {
+        lastKnown.current = pos;
+        saveLastLocation(pos);
+      }
+      centerMap(target.lat, target.lng);
+      await loadEvents(target.lat, target.lng);
+    }
     if (showLoader) setLocating(false);
   };
 
@@ -189,6 +196,20 @@ export default function MapScreen({ navigation }) {
       return () => clearInterval(readyCheck);
     }, [])
   );
+
+  // Android может пересоздать WebView после сворачивания приложения —
+  // вернём пользователя на его город вместо «сброса» на Москву.
+  const onLoadEnd = () => {
+    const c = lastKnown.current;
+    if (c) {
+      suppressMove.current = true;
+      send({ type: "center", lat: c.lat, lng: c.lng });
+      setTimeout(() => {
+        suppressMove.current = false;
+      }, 1200);
+      loadEvents(c.lat, c.lng);
+    }
+  };
 
   const onMessage = (event) => {
     try {
@@ -214,13 +235,20 @@ export default function MapScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1 }}>
-      <WebView
-        ref={webviewRef}
-        originWhitelist={["*"]}
-        source={{ html }}
-        onMessage={onMessage}
-        style={{ flex: 1 }}
-      />
+      {html ? (
+        <WebView
+          ref={webviewRef}
+          originWhitelist={["*"]}
+          source={{ html }}
+          onMessage={onMessage}
+          onLoadEnd={onLoadEnd}
+          style={{ flex: 1 }}
+        />
+      ) : (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color="#FF4458" />
+        </View>
+      )}
 
       <TouchableOpacity style={styles.locateButton} onPress={() => locateMe()} disabled={locating}>
         <Ionicons name="locate" size={22} color={locating ? "#aaa" : "#FF4458"} />
