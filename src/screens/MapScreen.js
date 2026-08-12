@@ -29,7 +29,7 @@ function buildMapHtml(lat, lng) {
   var queue = [];
   var ready = false;
 
-  var map = L.map('map', { attributionControl: false }).setView([${lat}, ${lng}], 13);
+  var map = L.map('map', { attributionControl: false, crs: L.CRS.EPSG3395 }).setView([${lat}, ${lng}], 13);
   var markerUser = L.marker([${lat}, ${lng}]).addTo(map).bindPopup('Ты здесь');
   L.tileLayer('${YANDEX_URL}', {}).addTo(map);
 

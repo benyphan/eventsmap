@@ -18,7 +18,7 @@ function buildPickerHtml(lat, lng) {
 <div id="map"></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-  var map = L.map('map', { attributionControl: false }).setView([${lat}, ${lng}], 15);
+  var map = L.map('map', { attributionControl: false, crs: L.CRS.EPSG3395 }).setView([${lat}, ${lng}], 15);
   var marker = L.marker([${lat}, ${lng}], { draggable: true }).addTo(map);
   L.tileLayer('${YANDEX_URL}', {}).addTo(map);
 
