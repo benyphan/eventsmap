@@ -32,6 +32,14 @@ const MINUTES = [0, 15, 30, 45];
 
 const WEEKDAYS = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 
+// Возвращает локальное время в виде строки без смещения/часового пояса.
+// Бэкенд хранит datetime без timezone и возвращает его как есть,
+// поэтому JS-парсинг такой строки даёт ровно то время, что выбрал пользователь.
+function toLocalNaiveISO(date) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
+}
+
 function dateChips() {
   const out = [];
   const now = new Date();
@@ -130,7 +138,7 @@ export default function CreateEventScreen({ navigation }) {
       lat: location.lat,
       lng: location.lng,
       address: address || null,
-      start_at: start.toISOString(),
+      start_at: toLocalNaiveISO(start),
       max_participants: maxParticipants ? parseInt(maxParticipants, 10) : null,
       criteria: Object.keys(criteria).length ? criteria : null,
       tags: tags.length ? tags : null,
