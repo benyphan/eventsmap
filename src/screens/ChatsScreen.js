@@ -11,6 +11,8 @@ import {
 } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { getChats, BASE_URL } from "../api/client";
+import { bytesToUtf8 } from "../crypto/e2e";
+import { base64ToBytes } from "../crypto/e2e";
 
 function fullUrl(url) {
   if (!url) return null;
@@ -50,8 +52,12 @@ export default function ChatsScreen() {
   }
 
   const lastText = (m) => {
-    if (!m) return "Нет сообщений";
-    return m.content_enc ? "🔒 Сообщение" : "";
+    if (!m?.content_enc) return "Нет сообщений";
+    try {
+      return bytesToUtf8(base64ToBytes(m.content_enc));
+    } catch (e) {
+      return "🔒 Сообщение";
+    }
   };
 
   return (

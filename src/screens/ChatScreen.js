@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { getMe, getMessages, sendMessageEnc } from "../api/client";
-import { ensureKeys, encryptFor, decryptFrom, utf8ToBytes, bytesToUtf8 } from "../crypto/e2e";
+import { utf8ToBytes, bytesToUtf8 } from "../crypto/e2e";
 import { bytesToBase64, base64ToBytes } from "../crypto/e2e";
 import EmojiPicker from "../components/EmojiPicker";
 
@@ -21,7 +21,6 @@ export default function ChatScreen({ route }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [myId, setMyId] = useState(null);
-  const [myPriv, setMyPriv] = useState(null);
   const [ready, setReady] = useState(false);
   const [sending, setSending] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
@@ -29,8 +28,6 @@ export default function ChatScreen({ route }) {
   const listRef = useRef(null);
   const [selection, setSelection] = useState({ start: 0, end: 0 });
   const navigation = useNavigation();
-
-  const otherPub = otherUser?.e2e_public_key;
 
   useEffect(() => {
     if (isGroup && title) {
@@ -55,37 +52,24 @@ export default function ChatScreen({ route }) {
         try {
           const me = await getMe();
           setMyId(me.id);
-          if (!isGroup) {
-            const keys = await ensureKeys();
-            setMyPriv(keys.privateKey);
-          }
           setReady(true);
-        } catch (e) {
-          Alert.alert("Ошибка", "Не удалось подготовить ключи шифрования");
-        }
+        } catch (e) {}
       })();
       load();
       timer = setInterval(load, 3000);
       return () => {
         if (timer) clearInterval(timer);
       };
-    }, [load, isGroup])
+    }, [load])
   );
 
   const renderText = (m) => {
-    if (isGroup) {
-      if (!m.content_enc) return "";
-      try {
-        return bytesToUtf8(base64ToBytes(m.content_enc));
-      } catch (e) {
-        return "🔒 Не удалось прочитать";
-      }
+    if (!m.content_enc) return "";
+    try {
+      return bytesToUtf8(base64ToBytes(m.content_enc));
+    } catch (e) {
+      return "🔒 Не удалось прочитать";
     }
-    if (!myPriv || !otherPub) {
-      return m.sender_id === myId ? "Отправлено" : "Собеседник ещё не настроил шифрование";
-    }
-    const plain = decryptFrom(myPriv, otherPub, m.content_enc);
-    return plain !== null ? plain : "🔒 Не удалось расшифровать";
   };
 
   const insertEmoji = (emoji) => {
@@ -99,20 +83,9 @@ export default function ChatScreen({ route }) {
   const handleSend = async () => {
     const text = input.trim();
     if (!text || sending) return;
-    if (!isGroup && (!myPriv || !otherPub)) {
-      if (!otherPub) {
-        Alert.alert("Внимание", "Собеседник ещё не настроил шифрование. Сообщение отправить нельзя.");
-      }
-      return;
-    }
     setSending(true);
     try {
-      let contentEnc;
-      if (isGroup) {
-        contentEnc = bytesToBase64(utf8ToBytes(text));
-      } else {
-        contentEnc = await encryptFor(myPriv, otherPub, text);
-      }
+      const contentEnc = bytesToBase64(utf8ToBytes(text));
       await sendMessageEnc(chatId, contentEnc);
       setInput("");
       await load();
@@ -128,11 +101,6 @@ export default function ChatScreen({ route }) {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      {!otherPub && ready ? (
-        <Text style={styles.warning}>
-          ⚠ Собеседник ещё не настроил сквозное шифрование
-        </Text>
-      ) : null}
       <FlatList
         ref={listRef}
         style={styles.list}
@@ -202,13 +170,6 @@ export default function ChatScreen({ route }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f7f7f7" },
-  warning: {
-    backgroundColor: "#fff7ed",
-    color: "#b45309",
-    padding: 8,
-    textAlign: "center",
-    fontSize: 13,
-  },
   list: { flex: 1 },
   listContent: { padding: 12 },
   bubbleWrap: {
