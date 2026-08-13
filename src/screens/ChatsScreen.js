@@ -13,6 +13,7 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { getChats, BASE_URL } from "../api/client";
 import { bytesToUtf8 } from "../crypto/e2e";
 import { base64ToBytes } from "../crypto/e2e";
+import { fmtTime } from "../utils/datetime";
 
 function fullUrl(url) {
   if (!url) return null;
@@ -109,10 +110,7 @@ export default function ChatsScreen() {
             </View>
             {item.last_message?.created_at ? (
               <Text style={styles.time}>
-                {new Date(item.last_message.created_at).toLocaleTimeString("ru-RU", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {fmtTime(item.last_message.created_at)}
               </Text>
             ) : null}
           </TouchableOpacity>

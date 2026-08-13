@@ -15,6 +15,7 @@ import { getMe, getMessages, sendMessageEnc } from "../api/client";
 import { utf8ToBytes, bytesToUtf8 } from "../crypto/e2e";
 import { bytesToBase64, base64ToBytes } from "../crypto/e2e";
 import EmojiPicker from "../components/EmojiPicker";
+import { fmtTime } from "../utils/datetime";
 
 export default function ChatScreen({ route }) {
   const { chatId, otherUser, isGroup, title } = route.params;
@@ -119,12 +120,7 @@ export default function ChatScreen({ route }) {
                 {renderText(item)}
               </Text>
               <Text style={[styles.bubbleTime, mine && styles.bubbleTimeMine]}>
-                {item.created_at
-                  ? new Date(item.created_at).toLocaleTimeString("ru-RU", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : ""}
+                {fmtTime(item.created_at)}
               </Text>
             </View>
           );

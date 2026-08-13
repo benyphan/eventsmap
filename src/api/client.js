@@ -198,6 +198,11 @@ export async function createEvent(payload) {
   return res.data;
 }
 
+export async function geocodeAddress(q) {
+  const res = await api.get("/api/geocode", { params: { q } });
+  return res.data;
+}
+
 export async function joinEvent(eventId) {
   const res = await api.post(`/events/${eventId}/join`);
   return res.data;

@@ -11,8 +11,8 @@ import {
 } from "react-native";
 import { useRoute } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { createEvent } from "../api/client";
-import { loadLastLocation, saveLastLocation, getCurrentPosition } from "../utils/location";
+import { createEvent, geocodeAddress } from "../api/client";
+import { saveLastLocation, getCurrentPosition } from "../utils/location";
 
 const MOSCOW = { lat: 55.751244, lng: 37.618423 };
 
@@ -31,14 +31,6 @@ const HOURS = Array.from({ length: 15 }, (_, i) => i + 9); // 9..23
 const MINUTES = [0, 15, 30, 45];
 
 const WEEKDAYS = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
-
-// Возвращает локальное время в виде строки без смещения/часового пояса.
-// Бэкенд хранит datetime без timezone и возвращает его как есть,
-// поэтому JS-парсинг такой строки даёт ровно то время, что выбрал пользователь.
-function toLocalNaiveISO(date) {
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
-}
 
 function dateChips() {
   const out = [];
@@ -75,27 +67,9 @@ export default function CreateEventScreen({ navigation }) {
   const [customInterest, setCustomInterest] = useState("");
   const [maxParticipants, setMaxParticipants] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
 
   const dates = useMemo(dateChips, []);
-
-  useEffect(() => {
-    (async () => {
-      // Сначала последняя известная позиция, затем свежий GPS.
-      // Москва — только если о пользователе вообще ничего не известно.
-      const saved = await loadLastLocation();
-      if (saved) {
-        setLocation(saved);
-        return;
-      }
-      const pos = await getCurrentPosition();
-      if (pos) {
-        setLocation(pos);
-        saveLastLocation(pos);
-        return;
-      }
-      setLocation(MOSCOW);
-    })();
-  }, []);
 
   useEffect(() => {
     if (!route.params?.pickedLat || !route.params?.pickedLng) return;
@@ -138,7 +112,7 @@ export default function CreateEventScreen({ navigation }) {
       lat: location.lat,
       lng: location.lng,
       address: address || null,
-      start_at: toLocalNaiveISO(start),
+      start_at: start.toISOString(),
       max_participants: maxParticipants ? parseInt(maxParticipants, 10) : null,
       criteria: Object.keys(criteria).length ? criteria : null,
       tags: tags.length ? tags : null,
@@ -152,7 +126,7 @@ export default function CreateEventScreen({ navigation }) {
       return;
     }
     if (!location) {
-      Alert.alert("Определяем местоположение", "Подожди пару секунд и попробуй снова");
+      Alert.alert("Выбери место", "Отметь точку на карте или найди адрес ниже");
       return;
     }
     if (maxParticipants && parseInt(maxParticipants, 10) > 20) {
@@ -183,6 +157,37 @@ export default function CreateEventScreen({ navigation }) {
     navigation.navigate("LocationPicker", { lat: base.lat, lng: base.lng });
   };
 
+  const findAddress = async () => {
+    if (!address.trim()) {
+      Alert.alert("Укажи адрес", "Впиши адрес или название места");
+      return;
+    }
+    setGeocoding(true);
+    try {
+      const res = await geocodeAddress(address.trim());
+      if (res.found) {
+        setLocation({ lat: res.lat, lng: res.lng });
+        setAddress(res.name || address.trim());
+      } else {
+        Alert.alert("Не найдено", "Не удалось найти этот адрес. Попробуй выбрать точку на карте.");
+      }
+    } catch (e) {
+      Alert.alert("Ошибка", "Не удалось найти адрес. Попробуй ещё раз.");
+    } finally {
+      setGeocoding(false);
+    }
+  };
+
+  const useMyPosition = async () => {
+    const pos = await getCurrentPosition();
+    if (pos) {
+      setLocation(pos);
+      saveLastLocation(pos);
+    } else {
+      Alert.alert("Не удалось определить", "Включи геолокацию или выбери точку на карте.");
+    }
+  };
+
   return (
     <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
       <Text style={styles.section}>Основное</Text>
@@ -210,12 +215,26 @@ export default function CreateEventScreen({ navigation }) {
         value={address}
         onChangeText={setAddress}
       />
+      <View style={styles.addressRow}>
+        <TouchableOpacity
+          style={[styles.addressButton, geocoding && styles.addressButtonDisabled]}
+          onPress={findAddress}
+          disabled={geocoding}
+        >
+          <Ionicons name="search" size={16} color="#FF4458" />
+          <Text style={styles.addressButtonText}>{geocoding ? "Ищу..." : "Найти адрес"}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.addressButton} onPress={useMyPosition}>
+          <Ionicons name="navigate" size={16} color="#FF4458" />
+          <Text style={styles.addressButtonText}>Моя позиция</Text>
+        </TouchableOpacity>
+      </View>
       <TouchableOpacity style={styles.mapButton} onPress={openPicker}>
         <Ionicons name="location" size={18} color="#FF4458" />
         <Text style={styles.mapButtonText}>
           {location
             ? `Выбрано: ${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`
-            : "Определить местоположение (нажмите сюда)"}
+            : "Выбрать место на карте"}
         </Text>
       </TouchableOpacity>
 
@@ -382,6 +401,21 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     backgroundColor: "#fff5f6",
   },
+  addressRow: { flexDirection: "row", marginBottom: 10 },
+  addressButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#FF4458",
+    borderRadius: 12,
+    paddingVertical: 10,
+    marginRight: 8,
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  addressButtonDisabled: { backgroundColor: "#f3b4bd" },
+  addressButtonText: { marginLeft: 6, color: "#FF4458", fontWeight: "600", fontSize: 14 },
   mapButtonText: { marginLeft: 8, color: "#FF4458", fontWeight: "600", flex: 1 },
   chipsRow: { flexGrow: 0, marginBottom: 4 },
   chip: {
