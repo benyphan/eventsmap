@@ -25,8 +25,8 @@ import {
   createPostWithImage,
   deletePost,
   getFriendRequests,
+  getFriends,
   getMyReferral,
-  getShop,
   BASE_URL,
 } from "../api/client";
 import { fmtDateTime } from "../utils/datetime";
@@ -54,7 +54,6 @@ export default function ProfileScreen({ onLoggedOut }) {
   const [viewerVisible, setViewerVisible] = useState(false);
   const [referral, setReferral] = useState(null);
   const [copied, setCopied] = useState(false);
-  const [shop, setShop] = useState(null);
   const [showEmoji, setShowEmoji] = useState(false);
   const [postSelection, setPostSelection] = useState({ start: 0, end: 0 });
   const [usernameModal, setUsernameModal] = useState(false);
@@ -97,10 +96,6 @@ export default function ProfileScreen({ onLoggedOut }) {
     try {
       const ref = await getMyReferral();
       setReferral(ref);
-    } catch (e) {}
-    try {
-      const s = await getShop();
-      setShop(s);
     } catch (e) {}
     setLoading(false);
   }, []);
@@ -307,10 +302,10 @@ export default function ProfileScreen({ onLoggedOut }) {
               <Text style={styles.statLabel}>Посты</Text>
             </View>
             <View style={styles.statDivider} />
-            <View style={styles.statItem}>
+            <TouchableOpacity style={styles.statItem} onPress={() => navigation.navigate("Friends")}>
               <Text style={styles.statValue}>{friendsCount}</Text>
               <Text style={styles.statLabel}>Друзья</Text>
-            </View>
+            </TouchableOpacity>
             <View style={styles.statDivider} />
             <TouchableOpacity style={styles.statItem} onPress={() => navigation.navigate("FriendRequests")}>
               <Text style={styles.statValue}>
@@ -407,26 +402,6 @@ export default function ProfileScreen({ onLoggedOut }) {
               </TouchableOpacity>
             </View>
           </View>
-
-          {shop?.gifts_received?.length > 0 ? (
-            <View style={styles.giftsBox}>
-              <Text style={styles.giftsTitle}>
-                🎁 Мои подарки ({shop.gifts_received.length})
-              </Text>
-              {shop.gifts_received.map((g) => (
-                <View key={g.id} style={styles.giftRow}>
-                  <Text style={styles.giftEmoji}>{g.item_emoji || "🎁"}</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.giftTitle}>
-                      {g.item_name} от {g.from_user_name || "пользователя"}
-                    </Text>
-                    {g.message ? <Text style={styles.giftMsg}>{g.message}</Text> : null}
-                    <Text style={styles.giftDate}>{fmtDateTime(g.created_at)}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          ) : null}
 
           <Text style={styles.sectionTitle}>Мои посты ({posts.length})</Text>
         </View>

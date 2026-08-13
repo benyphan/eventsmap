@@ -153,6 +153,24 @@ export default function UserProfileScreen({ route }) {
             </TouchableOpacity>
           </View>
 
+          {user?.gifts?.length > 0 ? (
+            <View style={styles.giftsBox}>
+              <Text style={styles.giftsTitle}>Подарки ({user.gifts.length})</Text>
+              {user.gifts.map((g) => (
+                <View key={g.id} style={styles.giftRow}>
+                  <Text style={styles.giftEmoji}>{g.item_emoji || "🎁"}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.giftTitle}>
+                      {g.item_name} от {g.from_user_name || "пользователя"}
+                    </Text>
+                    {g.message ? <Text style={styles.giftMsg}>{g.message}</Text> : null}
+                    <Text style={styles.giftDate}>{fmtDateTime(g.created_at)}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
           <Text style={styles.sectionTitle}>Посты ({posts.length})</Text>
         </View>
       }
@@ -250,6 +268,28 @@ const styles = StyleSheet.create({
   },
   btnText: { color: "#FF4458", fontWeight: "600" },
   disabled: { opacity: 0.5 },
+  giftsBox: {
+    alignSelf: "stretch",
+    marginTop: 16,
+    marginHorizontal: 16,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#eee",
+  },
+  giftsTitle: { fontSize: 15, fontWeight: "700", marginBottom: 8 },
+  giftRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  giftEmoji: { fontSize: 22, marginRight: 10 },
+  giftTitle: { fontSize: 13, fontWeight: "600", color: "#333" },
+  giftMsg: { fontSize: 12, color: "#666", marginTop: 2 },
+  giftDate: { fontSize: 11, color: "#aaa", marginTop: 2 },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "700",

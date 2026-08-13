@@ -7,12 +7,16 @@ export default function SettingsScreen() {
   const [notifications, setNotifications] = React.useState(true);
   const [showOnMap, setShowOnMap] = React.useState(true);
   const [policy, setPolicy] = useState("all");
+  const [giftsVisibility, setGiftsVisibility] = useState("all");
+  const [giftsPolicy, setGiftsPolicy] = useState("all");
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const me = await getMe();
       setPolicy(me.messages_policy || "all");
+      setGiftsVisibility(me.gifts_visibility || "all");
+      setGiftsPolicy(me.gifts_policy || "all");
     } catch (e) {}
   }, []);
 
@@ -28,6 +32,32 @@ export default function SettingsScreen() {
     try {
       await updateMe({ messages_policy: value });
       setPolicy(value);
+    } catch (e) {
+      Alert.alert("Ошибка", e?.response?.data?.detail || "Не удалось сохранить настройку");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const changeGiftsVisibility = async (value) => {
+    if (value === giftsVisibility) return;
+    setSaving(true);
+    try {
+      await updateMe({ gifts_visibility: value });
+      setGiftsVisibility(value);
+    } catch (e) {
+      Alert.alert("Ошибка", e?.response?.data?.detail || "Не удалось сохранить настройку");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const changeGiftsPolicy = async (value) => {
+    if (value === giftsPolicy) return;
+    setSaving(true);
+    try {
+      await updateMe({ gifts_policy: value });
+      setGiftsPolicy(value);
     } catch (e) {
       Alert.alert("Ошибка", e?.response?.data?.detail || "Не удалось сохранить настройку");
     } finally {
@@ -60,6 +90,74 @@ export default function SettingsScreen() {
         >
           <Text style={[styles.optionText, policy === "friends" && styles.optionTextActive]}>
             Только друзья
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.sectionTitle}>Подарки</Text>
+      <Text style={styles.sectionHint}>
+        Кто может видеть полученные тобой подарки.
+      </Text>
+      <View style={styles.segment}>
+        <TouchableOpacity
+          style={[styles.option, giftsVisibility === "all" && styles.optionActive]}
+          onPress={() => changeGiftsVisibility("all")}
+          disabled={saving}
+        >
+          <Text style={[styles.optionText, giftsVisibility === "all" && styles.optionTextActive]}>
+            Все
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.option, giftsVisibility === "friends" && styles.optionActive]}
+          onPress={() => changeGiftsVisibility("friends")}
+          disabled={saving}
+        >
+          <Text style={[styles.optionText, giftsVisibility === "friends" && styles.optionTextActive]}>
+            Только друзья
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.option, giftsVisibility === "nobody" && styles.optionActive]}
+          onPress={() => changeGiftsVisibility("nobody")}
+          disabled={saving}
+        >
+          <Text style={[styles.optionText, giftsVisibility === "nobody" && styles.optionTextActive]}>
+            Никто
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.sectionTitle}>Кто может дарить подарки</Text>
+      <Text style={styles.sectionHint}>
+        Ограничение действует при отправке подарков тебе.
+      </Text>
+      <View style={styles.segment}>
+        <TouchableOpacity
+          style={[styles.option, giftsPolicy === "all" && styles.optionActive]}
+          onPress={() => changeGiftsPolicy("all")}
+          disabled={saving}
+        >
+          <Text style={[styles.optionText, giftsPolicy === "all" && styles.optionTextActive]}>
+            Все
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.option, giftsPolicy === "friends" && styles.optionActive]}
+          onPress={() => changeGiftsPolicy("friends")}
+          disabled={saving}
+        >
+          <Text style={[styles.optionText, giftsPolicy === "friends" && styles.optionTextActive]}>
+            Только друзья
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.option, giftsPolicy === "none" && styles.optionActive]}
+          onPress={() => changeGiftsPolicy("none")}
+          disabled={saving}
+        >
+          <Text style={[styles.optionText, giftsPolicy === "none" && styles.optionTextActive]}>
+            Никто
           </Text>
         </TouchableOpacity>
       </View>

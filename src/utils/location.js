@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
+import { Platform } from "react-native";
 
 // Запасная точка по умолчанию — только для самого первого запуска,
 // когда о пользователе ещё ничего не известно.
@@ -32,6 +33,25 @@ export async function saveLastLocation(pos) {
 // Текущие координаты устройства. Возвращает null при отказе/таймауте —
 // без «молчаливого» фолбэка на Москву.
 export async function getCurrentPosition() {
+  // На вебе expo-location требует navigator.permissions.query, который
+  // недоступен во многих мобильных браузерах. Используем нативный API —
+  // он сам запросит разрешение и корректно работает на всех платформах.
+  if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.geolocation) {
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => resolve(null), 15000);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          clearTimeout(timer);
+          resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        },
+        () => {
+          clearTimeout(timer);
+          resolve(null);
+        },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 }
+      );
+    });
+  }
   try {
     const { status } = await Promise.race([
       Location.requestForegroundPermissionsAsync(),

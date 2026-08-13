@@ -26,6 +26,7 @@ import EventDetailScreen from "./src/screens/EventDetailScreen";
 import NotificationsScreen from "./src/screens/NotificationsScreen";
 import UserProfileScreen from "./src/screens/UserProfileScreen";
 import FriendRequestsScreen from "./src/screens/FriendRequestsScreen";
+import FriendsScreen from "./src/screens/FriendsScreen";
 import SearchScreen from "./src/screens/SearchScreen";
 import ChatsScreen from "./src/screens/ChatsScreen";
 import ChatScreen from "./src/screens/ChatScreen";
@@ -84,6 +85,11 @@ function MainApp({ onLoggedOut }) {
         name="FriendRequests"
         component={FriendRequestsScreen}
         options={{ title: "Запросы в друзья" }}
+      />
+      <RootStack.Screen
+        name="Friends"
+        component={FriendsScreen}
+        options={{ title: "Мои друзья" }}
       />
       <RootStack.Screen name="Chat" component={ChatScreen} options={{ title: "Чат" }} />
       <RootStack.Screen
