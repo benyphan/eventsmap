@@ -119,6 +119,7 @@ export default function EventDetailScreen({ route }) {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>{event.title}</Text>
+      {event.archived ? <Text style={styles.archivedBadge}>📁 Архив</Text> : null}
       {event.category ? <Text style={styles.category}>{event.category}</Text> : null}
       <Text style={styles.date}>{fmtDateTime(event.start_at)}</Text>
       {event.address ? <Text style={styles.address}>📍 {event.address}</Text> : null}
@@ -156,7 +157,7 @@ export default function EventDetailScreen({ route }) {
         <Text style={styles.note}>⚠ {event.moderation_note}</Text>
       ) : null}
 
-      {!isOwner ? (
+      {!isOwner && !event.archived ? (
         myStatus === null ? (
           <TouchableOpacity
             style={[styles.primaryBtn, busy && styles.disabled]}
@@ -240,6 +241,20 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   container: { flex: 1, backgroundColor: "#fff", padding: 16 },
   title: { fontSize: 22, fontWeight: "800" },
+  archivedBadge: {
+    marginTop: 8,
+    alignSelf: "flex-start",
+    backgroundColor: "#f3f4f6",
+    borderWidth: 1,
+    borderColor: "#9ca3af",
+    borderRadius: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#4b5563",
+    overflow: "hidden",
+  },
   category: { color: "#FF4458", marginTop: 4, fontSize: 14 },
   date: { marginTop: 8, color: "#666", fontSize: 14 },
   address: { marginTop: 6, color: "#555", fontSize: 14 },

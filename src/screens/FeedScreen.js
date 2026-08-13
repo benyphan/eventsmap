@@ -31,6 +31,10 @@ export default function FeedScreen({ navigation }) {
     try {
       if (tab === "mine") {
         const data = await getMyEvents();
+        data.sort((a, b) => {
+          if (!!a.archived !== !!b.archived) return a.archived ? 1 : -1;
+          return new Date(b.start_at) - new Date(a.start_at);
+        });
         setEvents(data);
         return;
       }
@@ -128,13 +132,23 @@ export default function FeedScreen({ navigation }) {
         }
         renderItem={({ item }) => {
           const badge = tab === "mine" ? mineBadge(item) : null;
+          const archived = tab === "mine" && !!item.archived;
           return (
             <TouchableOpacity style={styles.card} onPress={() => openDetail(item)}>
               <View style={styles.cardHeader}>
                 <Text style={styles.cardTitle}>{item.title}</Text>
-                {badge ? (
-                  <View style={[styles.badge, styles[`badge_${badge.style}`]]}>
-                    <Text style={styles.badgeText}>{badge.text}</Text>
+                {badge || archived ? (
+                  <View style={styles.badgeRow}>
+                    {archived ? (
+                      <View style={[styles.badge, styles.badge_archived]}>
+                        <Text style={styles.badgeText}>Архив</Text>
+                      </View>
+                    ) : null}
+                    {badge ? (
+                      <View style={[styles.badge, styles[`badge_${badge.style}`]]}>
+                        <Text style={styles.badgeText}>{badge.text}</Text>
+                      </View>
+                    ) : null}
                   </View>
                 ) : null}
               </View>
@@ -235,6 +249,8 @@ const styles = StyleSheet.create({
   badge_approved: { backgroundColor: "#f0fdf4", borderWidth: 1, borderColor: "#16a34a" },
   badge_pending: { backgroundColor: "#fff7ed", borderWidth: 1, borderColor: "#f59e0b" },
   badge_rejected: { backgroundColor: "#fef2f2", borderWidth: 1, borderColor: "#dc2626" },
+  badge_archived: { backgroundColor: "#f3f4f6", borderWidth: 1, borderColor: "#9ca3af" },
+  badgeRow: { flexDirection: "row", gap: 6 },
   badgeText: { fontSize: 11, fontWeight: "700", color: "#333" },
   joinButton: {
     marginTop: 12,
