@@ -129,6 +129,12 @@ export default function CreateEventScreen({ navigation }) {
       Alert.alert("Выбери место", "Отметь точку на карте или найди адрес ниже");
       return;
     }
+    const sel = dates[dateIndex].date;
+    const start = new Date(sel.getFullYear(), sel.getMonth(), sel.getDate(), hour, minute);
+    if (start.getTime() <= Date.now()) {
+      Alert.alert("Время уже прошло", "Нельзя создавать мероприятие в прошлом. Выбери будущее время");
+      return;
+    }
     if (maxParticipants && parseInt(maxParticipants, 10) > 20) {
       Alert.alert("Слишком много участников", "Максимум 20 человек на мероприятие");
       return;
