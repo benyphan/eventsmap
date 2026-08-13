@@ -145,6 +145,11 @@ export async function getMessages(chatId) {
   return res.data;
 }
 
+export async function getEventChat(eventId) {
+  const res = await api.get(`/chats/event/${eventId}`);
+  return res.data;
+}
+
 export async function sendMessageEnc(chatId, contentEnc) {
   const res = await api.post(`/chats/${chatId}/messages`, { content_enc: contentEnc });
   return res.data;
@@ -170,6 +175,11 @@ export async function getEventsNearby(lat, lng, radiusM = 20000) {
   const res = await api.get("/events/", {
     params: { lat, lng, radius_m: radiusM },
   });
+  return res.data;
+}
+
+export async function getMyEvents() {
+  const res = await api.get("/events/mine");
   return res.data;
 }
 

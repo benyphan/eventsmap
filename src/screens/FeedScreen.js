@@ -10,19 +10,30 @@ import {
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { getEventsNearby } from "../api/client";
+import { getEventsNearby, getMyEvents } from "../api/client";
 import { fmtDateTime } from "../utils/datetime";
 import { loadLastLocation, saveLastLocation, getCurrentPosition } from "../utils/location";
+
+const MINE_BADGE = {
+  owner: { text: "Организатор", style: "owner" },
+  approved: { text: "Участвую", style: "approved" },
+  requested: { text: "Заявка на рассмотрении", style: "pending" },
+  rejected: { text: "Отклонена", style: "rejected" },
+};
 
 export default function FeedScreen({ navigation }) {
   const [events, setEvents] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [tab, setTab] = useState("nearby");
 
   const loadEvents = useCallback(async () => {
     setRefreshing(true);
     try {
-      // Сразу показываем события у последней известной позиции,
-      // затем обновляем по свежему GPS. Без «молчаливого» фолбэка на Москву.
+      if (tab === "mine") {
+        const data = await getMyEvents();
+        setEvents(data);
+        return;
+      }
       const saved = await loadLastLocation();
       let lat = saved ? saved.lat : 55.751244;
       let lng = saved ? saved.lng : 37.618423;
@@ -45,7 +56,7 @@ export default function FeedScreen({ navigation }) {
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [tab]);
 
   useEffect(() => {
     loadEvents();
@@ -80,41 +91,80 @@ export default function FeedScreen({ navigation }) {
     return parts.join(" • ");
   };
 
+  const mineBadge = (item) => {
+    if (item.is_owner) return MINE_BADGE.owner;
+    return MINE_BADGE[item.my_participant_status] || null;
+  };
+
   return (
     <View style={{ flex: 1 }}>
+      <View style={styles.tabs}>
+        <TouchableOpacity
+          style={[styles.tab, tab === "nearby" && styles.tabActive]}
+          onPress={() => setTab("nearby")}
+        >
+          <Text style={[styles.tabText, tab === "nearby" && styles.tabTextActive]}>
+            Рядом
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, tab === "mine" && styles.tabActive]}
+          onPress={() => setTab("mine")}
+        >
+          <Text style={[styles.tabText, tab === "mine" && styles.tabTextActive]}>
+            Мои мероприятия
+          </Text>
+        </TouchableOpacity>
+      </View>
       <FlatList
         style={styles.list}
         data={events}
         keyExtractor={(item) => item.id}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadEvents} />}
-        ListEmptyComponent={<Text style={styles.empty}>Рядом пока нет мероприятий</Text>}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.card} onPress={() => openDetail(item)}>
-            <Text style={styles.cardTitle}>{item.title}</Text>
-            {item.category ? <Text style={styles.cardCategory}>{item.category}</Text> : null}
-            {item.description ? (
-              <Text style={styles.cardDescription} numberOfLines={3}>
-                {item.description}
+        ListEmptyComponent={
+          <Text style={styles.empty}>
+            {tab === "mine" ? "У тебя пока нет мероприятий" : "Рядом пока нет мероприятий"}
+          </Text>
+        }
+        renderItem={({ item }) => {
+          const badge = tab === "mine" ? mineBadge(item) : null;
+          return (
+            <TouchableOpacity style={styles.card} onPress={() => openDetail(item)}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardTitle}>{item.title}</Text>
+                {badge ? (
+                  <View style={[styles.badge, styles[`badge_${badge.style}`]]}>
+                    <Text style={styles.badgeText}>{badge.text}</Text>
+                  </View>
+                ) : null}
+              </View>
+              {item.category ? <Text style={styles.cardCategory}>{item.category}</Text> : null}
+              {item.description ? (
+                <Text style={styles.cardDescription} numberOfLines={3}>
+                  {item.description}
+                </Text>
+              ) : null}
+              <Text style={styles.cardDate}>
+                {fmtDateTime(item.start_at)}
               </Text>
-            ) : null}
-            <Text style={styles.cardDate}>
-              {fmtDateTime(item.start_at)}
-            </Text>
-            {item.address ? <Text style={styles.cardAddress}>📍 {item.address}</Text> : null}
-            {distanceText(item) ? (
-              <Text style={styles.cardDistance}>{distanceText(item)}</Text>
-            ) : null}
-            {criteriaText(item) ? (
-              <Text style={styles.cardCriteria}>{criteriaText(item)}</Text>
-            ) : null}
-            <Text style={styles.cardMeta}>
-              👥 {item.participant_count || 0} / {item.max_participants || "∞"}
-            </Text>
-            <TouchableOpacity style={styles.joinButton} onPress={() => openDetail(item)}>
-              <Text style={styles.joinButtonText}>Хочу пойти</Text>
+              {item.address ? <Text style={styles.cardAddress}>📍 {item.address}</Text> : null}
+              {distanceText(item) ? (
+                <Text style={styles.cardDistance}>{distanceText(item)}</Text>
+              ) : null}
+              {criteriaText(item) ? (
+                <Text style={styles.cardCriteria}>{criteriaText(item)}</Text>
+              ) : null}
+              <Text style={styles.cardMeta}>
+                👥 {item.participant_count || 0} / {item.max_participants || "∞"}
+              </Text>
+              <TouchableOpacity style={styles.joinButton} onPress={() => openDetail(item)}>
+                <Text style={styles.joinButtonText}>
+                  {tab === "mine" ? "Открыть" : "Хочу пойти"}
+                </Text>
+              </TouchableOpacity>
             </TouchableOpacity>
-          </TouchableOpacity>
-        )}
+          );
+        }}
       />
       <TouchableOpacity
         style={styles.fab}
@@ -127,6 +177,29 @@ export default function FeedScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+  tabs: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  tab: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 14,
+  },
+  tabActive: {
+    borderBottomWidth: 2,
+    borderBottomColor: "#FF4458",
+  },
+  tabText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#8a8a93",
+  },
+  tabTextActive: {
+    color: "#FF4458",
+  },
   list: { flex: 1, backgroundColor: "#f7f7f7" },
   empty: { textAlign: "center", marginTop: 40, color: "#999" },
   card: {
@@ -139,7 +212,13 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  cardTitle: { fontSize: 18, fontWeight: "700" },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  cardTitle: { fontSize: 18, fontWeight: "700", flexShrink: 1 },
   cardCategory: { color: "#FF4458", marginTop: 4, fontSize: 13 },
   cardDescription: { marginTop: 8, color: "#444" },
   cardDate: { marginTop: 8, color: "#888", fontSize: 12 },
@@ -147,6 +226,16 @@ const styles = StyleSheet.create({
   cardAddress: { marginTop: 4, color: "#555", fontSize: 13 },
   cardCriteria: { marginTop: 4, color: "#FF4458", fontSize: 12 },
   cardMeta: { marginTop: 6, color: "#888", fontSize: 12 },
+  badge: {
+    borderRadius: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+  },
+  badge_owner: { backgroundColor: "#fff5f6", borderWidth: 1, borderColor: "#FF4458" },
+  badge_approved: { backgroundColor: "#f0fdf4", borderWidth: 1, borderColor: "#16a34a" },
+  badge_pending: { backgroundColor: "#fff7ed", borderWidth: 1, borderColor: "#f59e0b" },
+  badge_rejected: { backgroundColor: "#fef2f2", borderWidth: 1, borderColor: "#dc2626" },
+  badgeText: { fontSize: 11, fontWeight: "700", color: "#333" },
   joinButton: {
     marginTop: 12,
     backgroundColor: "#FF4458",

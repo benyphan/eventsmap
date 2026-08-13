@@ -5,7 +5,12 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, Alert, View, Platform } from "react-native";
+import { installWebAlert } from "./src/web/webAlert";
+
+if (Platform.OS === "web") {
+  installWebAlert(Alert);
+}
 
 import LoginScreen from "./src/screens/LoginScreen";
 import RegisterScreen from "./src/screens/RegisterScreen";

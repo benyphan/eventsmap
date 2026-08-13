@@ -8,7 +8,7 @@ const PRIV_KEY = "e2e_private_key";
 const PUB_KEY = "e2e_public_key";
 
 // ---------- UTF-8 ----------
-function utf8ToBytes(str) {
+export function utf8ToBytes(str) {
   const bytes = [];
   for (let i = 0; i < str.length; i++) {
     let code = str.codePointAt(i);
@@ -31,7 +31,7 @@ function utf8ToBytes(str) {
   return new Uint8Array(bytes);
 }
 
-function bytesToUtf8(bytes) {
+export function bytesToUtf8(bytes) {
   const chunks = [];
   for (let i = 0; i < bytes.length; i++) {
     const b = bytes[i];

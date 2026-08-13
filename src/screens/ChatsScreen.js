@@ -66,23 +66,40 @@ export default function ChatsScreen() {
       renderItem={({ item }) => {
         const other = item.other_user;
         const avatarUri = fullUrl(other?.avatar_url);
+        const isGroup = !!item.is_group;
+        const displayName = isGroup ? item.title || "Групповой чат" : other?.name || "Собеседник";
         return (
           <TouchableOpacity
             style={styles.card}
             onPress={() =>
-              navigation.navigate("Chat", { chatId: item.id, otherUser: other })
+              navigation.navigate("Chat", {
+                chatId: item.id,
+                otherUser: other,
+                isGroup,
+                title: item.title,
+              })
             }
           >
-            {avatarUri ? (
+            {avatarUri && !isGroup ? (
               <Image source={{ uri: avatarUri }} style={styles.avatar} />
             ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Text style={styles.avatarText}>{other?.name?.[0]?.toUpperCase() || "?"}</Text>
+              <View
+                style={[
+                  styles.avatar,
+                  isGroup ? styles.groupAvatar : styles.avatarPlaceholder,
+                ]}
+              >
+                <Text style={styles.avatarText}>
+                  {isGroup ? "👥" : other?.name?.[0]?.toUpperCase() || "?"}
+                </Text>
               </View>
             )}
             <View style={{ flex: 1 }}>
-              <Text style={styles.name}>{other?.name || "Собеседник"}</Text>
-              <Text style={styles.last}>{lastText(item.last_message)}</Text>
+              <Text style={styles.name}>{displayName}</Text>
+              <Text style={styles.last}>
+                {isGroup && item.member_count ? `👥 ${item.member_count} участника · ` : ""}
+                {lastText(item.last_message)}
+              </Text>
             </View>
             {item.last_message?.created_at ? (
               <Text style={styles.time}>
@@ -115,6 +132,11 @@ const styles = StyleSheet.create({
   },
   avatar: { width: 50, height: 50, borderRadius: 25 },
   avatarPlaceholder: {
+    backgroundColor: "#FF4458",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  groupAvatar: {
     backgroundColor: "#FF4458",
     justifyContent: "center",
     alignItems: "center",

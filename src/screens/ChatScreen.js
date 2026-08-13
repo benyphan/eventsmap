@@ -10,21 +10,33 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { getMe, getMessages, sendMessageEnc } from "../api/client";
-import { ensureKeys, encryptFor, decryptFrom } from "../crypto/e2e";
+import { ensureKeys, encryptFor, decryptFrom, utf8ToBytes, bytesToUtf8 } from "../crypto/e2e";
+import { bytesToBase64, base64ToBytes } from "../crypto/e2e";
+import EmojiPicker from "../components/EmojiPicker";
 
 export default function ChatScreen({ route }) {
-  const { chatId, otherUser } = route.params;
+  const { chatId, otherUser, isGroup, title } = route.params;
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [myId, setMyId] = useState(null);
   const [myPriv, setMyPriv] = useState(null);
   const [ready, setReady] = useState(false);
   const [sending, setSending] = useState(false);
+  const [showEmoji, setShowEmoji] = useState(false);
+  const inputRef = useRef(null);
   const listRef = useRef(null);
+  const [selection, setSelection] = useState({ start: 0, end: 0 });
+  const navigation = useNavigation();
 
   const otherPub = otherUser?.e2e_public_key;
+
+  useEffect(() => {
+    if (isGroup && title) {
+      navigation.setOptions({ title });
+    }
+  }, [isGroup, title, navigation]);
 
   const load = useCallback(async () => {
     if (!chatId) return;
@@ -41,9 +53,12 @@ export default function ChatScreen({ route }) {
       let timer = null;
       (async () => {
         try {
-          const [me, keys] = await Promise.all([getMe(), ensureKeys()]);
+          const me = await getMe();
           setMyId(me.id);
-          setMyPriv(keys.privateKey);
+          if (!isGroup) {
+            const keys = await ensureKeys();
+            setMyPriv(keys.privateKey);
+          }
           setReady(true);
         } catch (e) {
           Alert.alert("Ошибка", "Не удалось подготовить ключи шифрования");
@@ -54,10 +69,18 @@ export default function ChatScreen({ route }) {
       return () => {
         if (timer) clearInterval(timer);
       };
-    }, [load])
+    }, [load, isGroup])
   );
 
   const renderText = (m) => {
+    if (isGroup) {
+      if (!m.content_enc) return "";
+      try {
+        return bytesToUtf8(base64ToBytes(m.content_enc));
+      } catch (e) {
+        return "🔒 Не удалось прочитать";
+      }
+    }
     if (!myPriv || !otherPub) {
       return m.sender_id === myId ? "Отправлено" : "Собеседник ещё не настроил шифрование";
     }
@@ -65,9 +88,18 @@ export default function ChatScreen({ route }) {
     return plain !== null ? plain : "🔒 Не удалось расшифровать";
   };
 
+  const insertEmoji = (emoji) => {
+    const pos = selection.start ?? input.length;
+    const next = input.slice(0, pos) + emoji + input.slice(selection.end ?? pos);
+    setInput(next);
+    const cursor = pos + emoji.length;
+    setSelection({ start: cursor, end: cursor });
+  };
+
   const handleSend = async () => {
     const text = input.trim();
-    if (!text || sending || !myPriv || !otherPub) {
+    if (!text || sending) return;
+    if (!isGroup && (!myPriv || !otherPub)) {
       if (!otherPub) {
         Alert.alert("Внимание", "Собеседник ещё не настроил шифрование. Сообщение отправить нельзя.");
       }
@@ -75,7 +107,12 @@ export default function ChatScreen({ route }) {
     }
     setSending(true);
     try {
-      const contentEnc = await encryptFor(myPriv, otherPub, text);
+      let contentEnc;
+      if (isGroup) {
+        contentEnc = bytesToBase64(utf8ToBytes(text));
+      } else {
+        contentEnc = await encryptFor(myPriv, otherPub, text);
+      }
       await sendMessageEnc(chatId, contentEnc);
       setInput("");
       await load();
@@ -104,8 +141,12 @@ export default function ChatScreen({ route }) {
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => {
           const mine = item.sender_id === myId;
-          return (
+          const profileUserId = mine ? null : isGroup ? item.sender_id : otherUser?.id;
+          const bubble = (
             <View style={[styles.bubbleWrap, mine ? styles.bubbleMine : styles.bubbleOther]}>
+              {isGroup && !mine && item.sender_name ? (
+                <Text style={styles.bubbleSender}>👤 {item.sender_name}</Text>
+              ) : null}
               <Text style={[styles.bubbleText, mine && styles.bubbleTextMine]}>
                 {renderText(item)}
               </Text>
@@ -119,15 +160,36 @@ export default function ChatScreen({ route }) {
               </Text>
             </View>
           );
+          return profileUserId ? (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => navigation.navigate("UserProfile", { userId: profileUserId })}
+            >
+              {bubble}
+            </TouchableOpacity>
+          ) : (
+            bubble
+          );
         }}
       />
+      {showEmoji ? (
+        <EmojiPicker onSelect={insertEmoji} />
+      ) : null}
       <View style={styles.inputBar}>
+        <TouchableOpacity
+          style={[styles.emojiBtn, showEmoji && styles.emojiBtnActive]}
+          onPress={() => setShowEmoji((v) => !v)}
+        >
+          <Text style={styles.emojiBtnText}>😊</Text>
+        </TouchableOpacity>
         <TextInput
+          ref={inputRef}
           style={styles.input}
           placeholder="Сообщение..."
           placeholderTextColor="#aaa"
           value={input}
           onChangeText={setInput}
+          onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
           multiline
         />
         <TouchableOpacity style={[styles.sendBtn, sending && styles.disabled]} onPress={handleSend} disabled={sending}>
@@ -159,6 +221,7 @@ const styles = StyleSheet.create({
   bubbleOther: { alignSelf: "flex-start", backgroundColor: "#fff" },
   bubbleText: { fontSize: 15, color: "#333" },
   bubbleTextMine: { color: "#fff" },
+  bubbleSender: { fontSize: 11, fontWeight: "700", color: "#FF4458", marginBottom: 3 },
   bubbleTime: { fontSize: 11, color: "#999", marginTop: 4, alignSelf: "flex-end" },
   bubbleTimeMine: { color: "rgba(255,255,255,0.7)" },
   inputBar: {
@@ -170,6 +233,16 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#eee",
   },
+  emojiBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#f2f2f2",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emojiBtnActive: { backgroundColor: "#fff5f6" },
+  emojiBtnText: { fontSize: 22 },
   input: {
     flex: 1,
     backgroundColor: "#f2f2f2",

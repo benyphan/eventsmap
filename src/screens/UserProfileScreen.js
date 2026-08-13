@@ -113,9 +113,15 @@ export default function UserProfileScreen({ route }) {
               </View>
             )}
           </View>
-          <Text style={styles.name}>
-            {user?.active_decoration ? "✨ " : ""}{user?.name}
-          </Text>
+          <Text style={styles.name}>{user?.name}</Text>
+          {user?.active_decoration_emoji || user?.active_decoration_name ? (
+            <View style={styles.decorBadge}>
+              <Text style={styles.decorBadgeText}>
+                {user?.active_decoration_emoji || "✨"}{" "}
+                {user?.active_decoration_name || "Украшение"}
+              </Text>
+            </View>
+          ) : null}
           <Text style={styles.email}>{user?.email}</Text>
           {user?.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
 
@@ -217,6 +223,16 @@ const styles = StyleSheet.create({
   },
   avatarText: { color: "#fff", fontSize: 36, fontWeight: "700" },
   name: { fontSize: 20, fontWeight: "700", marginTop: 12 },
+  decorBadge: {
+    marginTop: 8,
+    backgroundColor: "#fff5f6",
+    borderWidth: 1,
+    borderColor: "#FF4458",
+    borderRadius: 16,
+    paddingVertical: 5,
+    paddingHorizontal: 14,
+  },
+  decorBadgeText: { color: "#FF4458", fontSize: 14, fontWeight: "700" },
   email: { color: "#888", marginTop: 4 },
   bio: { marginTop: 10, textAlign: "center", color: "#444", paddingHorizontal: 24 },
   actions: { flexDirection: "row", gap: 12, marginTop: 16 },

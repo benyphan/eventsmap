@@ -24,10 +24,12 @@ import {
   deletePost,
   getFriendRequests,
   getMyReferral,
+  getShop,
   BASE_URL,
 } from "../api/client";
 import { fmtDateTime } from "../utils/datetime";
 import ImageViewer from "../components/ImageViewer";
+import EmojiPicker from "../components/EmojiPicker";
 
 function fullUrl(url) {
   if (!url) return null;
@@ -50,6 +52,9 @@ export default function ProfileScreen({ onLoggedOut }) {
   const [viewerVisible, setViewerVisible] = useState(false);
   const [referral, setReferral] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [shop, setShop] = useState(null);
+  const [showEmoji, setShowEmoji] = useState(false);
+  const [postSelection, setPostSelection] = useState({ start: 0, end: 0 });
 
   const openViewer = (images, index) => {
     setViewerImages(images);
@@ -77,6 +82,10 @@ export default function ProfileScreen({ onLoggedOut }) {
     try {
       const ref = await getMyReferral();
       setReferral(ref);
+    } catch (e) {}
+    try {
+      const s = await getShop();
+      setShop(s);
     } catch (e) {}
     setLoading(false);
   }, []);
@@ -175,6 +184,14 @@ export default function ProfileScreen({ onLoggedOut }) {
     setPostImages((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const insertPostEmoji = (emoji) => {
+    const pos = postSelection.start ?? postText.length;
+    const next = postText.slice(0, pos) + emoji + postText.slice(postSelection.end ?? pos);
+    setPostText(next);
+    const cursor = pos + emoji.length;
+    setPostSelection({ start: cursor, end: cursor });
+  };
+
   const handleAddPost = async () => {
     const text = postText.trim();
     if (!text) return;
@@ -248,9 +265,15 @@ export default function ProfileScreen({ onLoggedOut }) {
               <Text style={styles.cameraText}>📷</Text>
             </View>
           </TouchableOpacity>
-          <Text style={styles.name}>
-            {user?.active_decoration ? "✨ " : ""}{user?.name}
-          </Text>
+          <Text style={styles.name}>{user?.name}</Text>
+          {user?.active_decoration_emoji || user?.active_decoration_name ? (
+            <View style={styles.decorBadge}>
+              <Text style={styles.decorBadgeText}>
+                {user?.active_decoration_emoji || "✨"}{" "}
+                {user?.active_decoration_name || "Украшение"}
+              </Text>
+            </View>
+          ) : null}
           <Text style={styles.email}>{user?.email}</Text>
           {user?.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
 
@@ -320,8 +343,12 @@ export default function ProfileScreen({ onLoggedOut }) {
               placeholderTextColor="#aaa"
               value={postText}
               onChangeText={setPostText}
+              onSelectionChange={(e) => setPostSelection(e.nativeEvent.selection)}
               multiline
             />
+            {showEmoji ? (
+              <EmojiPicker onSelect={insertPostEmoji} />
+            ) : null}
             {postImages.length > 0 ? (
               <View style={styles.postImagesGrid}>
                 {postImages.map((img, i) => (
@@ -342,6 +369,12 @@ export default function ProfileScreen({ onLoggedOut }) {
                 <Text style={styles.postPhotoText}>📷 Фото ({postImages.length}/8)</Text>
               </TouchableOpacity>
               <TouchableOpacity
+                style={[styles.emojiBtn, showEmoji && styles.emojiBtnActive]}
+                onPress={() => setShowEmoji((v) => !v)}
+              >
+                <Text style={styles.emojiBtnText}>😊</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={[styles.postButton, posting && styles.disabled]}
                 onPress={handleAddPost}
                 disabled={posting}
@@ -350,6 +383,26 @@ export default function ProfileScreen({ onLoggedOut }) {
               </TouchableOpacity>
             </View>
           </View>
+
+          {shop?.gifts_received?.length > 0 ? (
+            <View style={styles.giftsBox}>
+              <Text style={styles.giftsTitle}>
+                🎁 Мои подарки ({shop.gifts_received.length})
+              </Text>
+              {shop.gifts_received.map((g) => (
+                <View key={g.id} style={styles.giftRow}>
+                  <Text style={styles.giftEmoji}>{g.item_emoji || "🎁"}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.giftTitle}>
+                      {g.item_name} от {g.from_user_name || "пользователя"}
+                    </Text>
+                    {g.message ? <Text style={styles.giftMsg}>{g.message}</Text> : null}
+                    <Text style={styles.giftDate}>{fmtDateTime(g.created_at)}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : null}
 
           <Text style={styles.sectionTitle}>Мои посты ({posts.length})</Text>
         </View>
@@ -466,6 +519,16 @@ const styles = StyleSheet.create({
   },
   cameraText: { fontSize: 16 },
   name: { fontSize: 22, fontWeight: "700", marginTop: 10 },
+  decorBadge: {
+    marginTop: 8,
+    backgroundColor: "#fff5f6",
+    borderWidth: 1,
+    borderColor: "#FF4458",
+    borderRadius: 16,
+    paddingVertical: 5,
+    paddingHorizontal: 14,
+  },
+  decorBadgeText: { color: "#FF4458", fontSize: 14, fontWeight: "700" },
   email: { color: "#888", marginTop: 4 },
   bio: { marginTop: 10, textAlign: "center", color: "#444", paddingHorizontal: 24 },
   statsRow: {
@@ -554,6 +617,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
   },
   referralShareText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  giftsBox: {
+    alignSelf: "stretch",
+    marginTop: 16,
+    marginHorizontal: 16,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#eee",
+  },
+  giftsTitle: { fontSize: 15, fontWeight: "700", marginBottom: 8 },
+  giftRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  giftEmoji: { fontSize: 22, marginRight: 10 },
+  giftTitle: { fontSize: 13, fontWeight: "600", color: "#333" },
+  giftMsg: { fontSize: 12, color: "#666", marginTop: 2 },
+  giftDate: { fontSize: 11, color: "#aaa", marginTop: 2 },
   postComposer: {
     alignSelf: "stretch",
     marginTop: 20,
@@ -602,6 +687,18 @@ const styles = StyleSheet.create({
   },
   postImageRemoveText: { color: "#fff", fontSize: 12, fontWeight: "700" },
   postActions: { flexDirection: "row", alignItems: "center", marginTop: 10 },
+  emojiBtn: {
+    borderWidth: 1,
+    borderColor: "#FF4458",
+    borderRadius: 12,
+    width: 42,
+    height: 42,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
+  },
+  emojiBtnActive: { backgroundColor: "#fff5f6" },
+  emojiBtnText: { fontSize: 18 },
   postPhotoBtn: {
     borderWidth: 1,
     borderColor: "#FF4458",

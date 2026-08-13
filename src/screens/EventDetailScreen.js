@@ -10,7 +10,7 @@ import {
   FlatList,
 } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import { getEvent, getEventParticipants, joinEvent, decideParticipant } from "../api/client";
+import { getEvent, getEventParticipants, joinEvent, decideParticipant, getEventChat } from "../api/client";
 import { fmtDateTime } from "../utils/datetime";
 
 const STATUS_TEXT = {
@@ -59,6 +59,23 @@ export default function EventDetailScreen({ route }) {
       Alert.alert("Заявка отправлена", "Организатор рассмотрит и подтвердит участие.");
     } catch (e) {
       Alert.alert("Ошибка", e?.response?.data?.detail || "Не удалось отправить заявку");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleOpenGroupChat = async () => {
+    setBusy(true);
+    try {
+      const chat = await getEventChat(eventId);
+      navigation.navigate("Chat", {
+        chatId: chat.id,
+        otherUser: null,
+        isGroup: true,
+        title: event.title,
+      });
+    } catch (e) {
+      Alert.alert("Ошибка", e?.response?.data?.detail || "Не удалось открыть чат мероприятия");
     } finally {
       setBusy(false);
     }
@@ -127,7 +144,7 @@ export default function EventDetailScreen({ route }) {
           onPress={() => navigation.navigate("UserProfile", { userId: event.owner_id })}
         >
           <Text style={styles.ownerLabel}>Организатор:</Text>
-          <Text style={styles.ownerName}>{event.owner_name || "Пользователь"}</Text>
+          <Text style={styles.ownerName}>{event.owner_name || "Пользователь"} ›</Text>
         </TouchableOpacity>
       ) : null}
 
@@ -157,17 +174,30 @@ export default function EventDetailScreen({ route }) {
         )
       ) : null}
 
+      {isOwner || myStatus === "approved" ? (
+        <TouchableOpacity
+          style={[styles.groupChatBtn, busy && styles.disabled]}
+          onPress={handleOpenGroupChat}
+          disabled={busy}
+        >
+          <Text style={styles.groupChatBtnText}>💬 Чат мероприятия</Text>
+        </TouchableOpacity>
+      ) : null}
+
       {isOwner && pending.length > 0 ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Заявки ({pending.length})</Text>
           {pending.map((p) => (
             <View key={p.id} style={styles.requestCard}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.requestName}>{p.user_name || "Пользователь"}</Text>
+              <TouchableOpacity
+                style={{ flex: 1 }}
+                onPress={() => navigation.navigate("UserProfile", { userId: p.user_id })}
+              >
+                <Text style={styles.requestName}>{p.user_name || "Пользователь"} ›</Text>
                 <Text style={styles.requestDate}>
                   {fmtDateTime(p.requested_at)}
                 </Text>
-              </View>
+              </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.smallBtn, styles.approveBtn, busy && styles.disabled]}
                 onPress={() => handleDecide(p.user_id, "approved")}
@@ -191,10 +221,14 @@ export default function EventDetailScreen({ route }) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Участники</Text>
           {participants.map((p) => (
-            <View key={p.id} style={styles.participantRow}>
-              <Text style={{ flex: 1 }}>{p.user_name || "Пользователь"}</Text>
+            <TouchableOpacity
+              key={p.id}
+              style={styles.participantRow}
+              onPress={() => navigation.navigate("UserProfile", { userId: p.user_id })}
+            >
+              <Text style={{ flex: 1 }}>{p.user_name || "Пользователь"} ›</Text>
               <Text style={styles.statusPill}>{STATUS_TEXT[p.status] || p.status}</Text>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       ) : null}
@@ -246,6 +280,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   primaryBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  groupChatBtn: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "#FF4458",
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    backgroundColor: "#fff5f6",
+  },
+  groupChatBtnText: { color: "#FF4458", fontSize: 15, fontWeight: "700" },
   disabled: { opacity: 0.5 },
   statusBox: {
     marginTop: 20,
