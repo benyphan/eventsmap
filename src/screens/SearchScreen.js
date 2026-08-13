@@ -69,6 +69,9 @@ export default function SearchScreen() {
           )}
           <View style={{ flex: 1 }}>
             <Text style={styles.rowTitle}>{item.name}</Text>
+            {item.username ? (
+              <Text style={[styles.rowSub, styles.tag]}>@{item.username}</Text>
+            ) : null}
             {item.bio ? <Text style={styles.rowSub} numberOfLines={1}>{item.bio}</Text> : null}
           </View>
         </TouchableOpacity>
@@ -189,5 +192,6 @@ const styles = StyleSheet.create({
   avatarText: { color: "#fff", fontSize: 18, fontWeight: "700" },
   rowTitle: { fontSize: 15, fontWeight: "600" },
   rowSub: { fontSize: 12, color: "#888", marginTop: 2 },
+  tag: { color: "#FF4458", fontWeight: "600" },
   dist: { color: "#FF4458", fontSize: 13, fontWeight: "600" },
 });

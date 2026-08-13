@@ -7,4 +7,10 @@ tmp_resp.json
 tmp_test_event.json
 *.log
 
-eventsmap-v1.0.0.apk
+*.apk
+*.apks
+dist/
+Order-132366_6468.txt
+/*.txt
+assets/ChatGPT Image*
+assets/photo_2026*

@@ -114,6 +114,7 @@ export default function UserProfileScreen({ route }) {
             )}
           </View>
           <Text style={styles.name}>{user?.name}</Text>
+          {user?.username ? <Text style={styles.username}>@{user.username}</Text> : null}
           {user?.active_decoration_emoji || user?.active_decoration_name ? (
             <View style={styles.decorBadge}>
               <Text style={styles.decorBadgeText}>
@@ -223,6 +224,7 @@ const styles = StyleSheet.create({
   },
   avatarText: { color: "#fff", fontSize: 36, fontWeight: "700" },
   name: { fontSize: 20, fontWeight: "700", marginTop: 12 },
+  username: { color: "#FF4458", fontSize: 14, fontWeight: "600", marginTop: 4 },
   decorBadge: {
     marginTop: 8,
     backgroundColor: "#fff5f6",

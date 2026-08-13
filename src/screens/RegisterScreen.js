@@ -19,6 +19,7 @@ export default function RegisterScreen({ navigation }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
   const [gender, setGender] = useState(null);
   const [referralCode, setReferralCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -34,6 +35,7 @@ export default function RegisterScreen({ navigation }) {
         name,
         email,
         password,
+        username: username.trim() ? username.trim().replace(/^@/, "").toLowerCase() : undefined,
         gender: gender || null,
         referral_code: referralCode.trim() || undefined,
       });
@@ -63,6 +65,14 @@ export default function RegisterScreen({ navigation }) {
         secureTextEntry
         value={password}
         onChangeText={setPassword}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Тег (например: ivanov)"
+        autoCapitalize="none"
+        autoCorrect={false}
+        value={username}
+        onChangeText={setUsername}
       />
       <TextInput
         style={styles.input}

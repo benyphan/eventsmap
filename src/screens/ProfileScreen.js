@@ -9,6 +9,7 @@ import {
   Alert,
   FlatList,
   TextInput,
+  Modal,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Share } from "react-native";
@@ -18,6 +19,7 @@ import {
   getMe,
   logout,
   uploadAvatar,
+  updateMe,
   getUserPosts,
   createPost,
   createPostWithImage,
@@ -55,6 +57,19 @@ export default function ProfileScreen({ onLoggedOut }) {
   const [shop, setShop] = useState(null);
   const [showEmoji, setShowEmoji] = useState(false);
   const [postSelection, setPostSelection] = useState({ start: 0, end: 0 });
+  const [usernameModal, setUsernameModal] = useState(false);
+  const [usernameInput, setUsernameInput] = useState("");
+
+  const saveUsername = async () => {
+    try {
+      const value = usernameInput.trim().replace(/^@/, "").toLowerCase();
+      const updated = await updateMe({ username: value || null });
+      setUser(updated);
+      setUsernameModal(false);
+    } catch (e) {
+      Alert.alert("Не удалось сохранить тег", e?.response?.data?.detail || "Попробуй ещё раз");
+    }
+  };
 
   const openViewer = (images, index) => {
     setViewerImages(images);
@@ -266,6 +281,15 @@ export default function ProfileScreen({ onLoggedOut }) {
             </View>
           </TouchableOpacity>
           <Text style={styles.name}>{user?.name}</Text>
+          {user?.username ? (
+            <TouchableOpacity onPress={() => { setUsernameInput(user.username); setUsernameModal(true); }}>
+              <Text style={styles.username}>@{user.username}</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity onPress={() => { setUsernameInput(""); setUsernameModal(true); }}>
+              <Text style={[styles.username, styles.usernameEmpty]}>+ Добавить тег</Text>
+            </TouchableOpacity>
+          )}
           {user?.active_decoration_emoji || user?.active_decoration_name ? (
             <View style={styles.decorBadge}>
               <Text style={styles.decorBadgeText}>
@@ -469,6 +493,30 @@ export default function ProfileScreen({ onLoggedOut }) {
       index={viewerIndex}
       onClose={() => setViewerVisible(false)}
     />
+    <Modal visible={usernameModal} transparent animationType="fade" onRequestClose={() => setUsernameModal(false)}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalCard}>
+          <Text style={styles.modalTitle}>Тег профиля</Text>
+          <Text style={styles.modalHint}>Только латиница, цифры и «_», минимум 5 символов.</Text>
+          <TextInput
+            style={styles.modalInput}
+            autoCapitalize="none"
+            autoCorrect={false}
+            placeholder="например: ivanov"
+            value={usernameInput}
+            onChangeText={setUsernameInput}
+          />
+          <View style={styles.modalRow}>
+            <TouchableOpacity style={styles.modalCancel} onPress={() => setUsernameModal(false)}>
+              <Text style={styles.modalCancelText}>Отмена</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.modalSave} onPress={saveUsername}>
+              <Text style={styles.modalSaveText}>Сохранить</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
     </>
   );
 }
@@ -529,6 +577,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   decorBadgeText: { color: "#FF4458", fontSize: 14, fontWeight: "700" },
+  username: { color: "#FF4458", fontSize: 15, fontWeight: "600", marginTop: 4 },
+  usernameEmpty: { color: "#999", fontWeight: "500" },
   email: { color: "#888", marginTop: 4 },
   bio: { marginTop: 10, textAlign: "center", color: "#444", paddingHorizontal: 24 },
   statsRow: {
@@ -784,4 +834,46 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   logoutText: { color: "#FF4458", fontWeight: "600" },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  modalCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    alignSelf: "stretch",
+  },
+  modalTitle: { fontSize: 18, fontWeight: "700", color: "#FF4458" },
+  modalHint: { fontSize: 13, color: "#888", marginTop: 6 },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 15,
+    marginTop: 14,
+  },
+  modalRow: { flexDirection: "row", marginTop: 16 },
+  modalCancel: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#FF4458",
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+    marginRight: 8,
+  },
+  modalCancelText: { color: "#FF4458", fontWeight: "600" },
+  modalSave: {
+    flex: 1,
+    backgroundColor: "#FF4458",
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  modalSaveText: { color: "#fff", fontWeight: "600" },
 });
