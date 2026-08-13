@@ -11,6 +11,6 @@ tmp_test_event.json
 *.apks
 dist/
 Order-132366_6468.txt
-/*.txt
+*.txt
 assets/ChatGPT Image*
 assets/photo_2026*
