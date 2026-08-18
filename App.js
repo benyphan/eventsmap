@@ -31,6 +31,7 @@ import SearchScreen from "./src/screens/SearchScreen";
 import ChatsScreen from "./src/screens/ChatsScreen";
 import ChatScreen from "./src/screens/ChatScreen";
 import ShopScreen from "./src/screens/ShopScreen";
+import PrivacyPolicyScreen from "./src/screens/PrivacyPolicyScreen";
 
 const AuthStack = createNativeStackNavigator();
 const MainTabs = createBottomTabNavigator();
@@ -97,6 +98,11 @@ function MainApp({ onLoggedOut }) {
         component={ShopScreen}
         options={{ title: "Магазин" }}
       />
+      <RootStack.Screen
+        name="PrivacyPolicy"
+        component={PrivacyPolicyScreen}
+        options={{ title: "Политика конфиденциальности" }}
+      />
     </RootStack.Navigator>
   );
 }
@@ -130,6 +136,7 @@ function AuthFlow({ onLoggedIn }) {
         {(props) => <LoginScreen {...props} onLoggedIn={onLoggedIn} />}
       </AuthStack.Screen>
       <AuthStack.Screen name="Register" component={RegisterScreen} />
+      <AuthStack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ title: "Политика конфиденциальности" }} />
       <AuthStack.Screen name="VerifyCode">
         {(props) => <VerifyCodeScreen {...props} onLoggedIn={onLoggedIn} />}
       </AuthStack.Screen>

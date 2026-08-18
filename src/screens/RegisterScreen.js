@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { register } from "../api/client";
 
 const GENDERS = [
@@ -22,11 +23,16 @@ export default function RegisterScreen({ navigation }) {
   const [username, setUsername] = useState("");
   const [gender, setGender] = useState(null);
   const [referralCode, setReferralCode] = useState("");
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
     if (!name || !email || !password) {
       Alert.alert("Заполни все поля");
+      return;
+    }
+    if (!privacyAccepted) {
+      Alert.alert("Нужно согласие", "Примите политику конфиденциальности для регистрации");
       return;
     }
     setLoading(true);
@@ -98,6 +104,29 @@ export default function RegisterScreen({ navigation }) {
           );
         })}
       </View>
+      <TouchableOpacity
+        style={styles.privacyRow}
+        onPress={() => setPrivacyAccepted(!privacyAccepted)}
+        activeOpacity={0.7}
+      >
+        <Ionicons
+          name={privacyAccepted ? "checkbox" : "square-outline"}
+          size={22}
+          color={privacyAccepted ? "#FF4458" : "#999"}
+        />
+        <Text style={styles.privacyText}>
+          Я принимаю{" "}
+          <Text
+            style={styles.privacyLink}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              navigation.navigate("PrivacyPolicy");
+            }}
+          >
+            политику конфиденциальности
+          </Text>
+        </Text>
+      </TouchableOpacity>
       <TouchableOpacity style={styles.button} onPress={handleRegister} disabled={loading}>
         <Text style={styles.buttonText}>{loading ? "Создаём..." : "Зарегистрироваться"}</Text>
       </TouchableOpacity>
@@ -143,4 +172,13 @@ const styles = StyleSheet.create({
   },
   buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
   link: { textAlign: "center", marginTop: 16, color: "#FF4458" },
+  privacyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 16,
+    marginBottom: 4,
+    gap: 8,
+  },
+  privacyText: { flex: 1, fontSize: 14, color: "#444", lineHeight: 20 },
+  privacyLink: { color: "#FF4458", fontWeight: "600", textDecorationLine: "underline" },
 });
